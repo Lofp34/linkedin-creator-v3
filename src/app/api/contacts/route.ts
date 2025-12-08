@@ -4,12 +4,21 @@ import { getContacts, addContact } from '@/lib/db';
 // GET /api/contacts - List all contacts
 export async function GET() {
     try {
+        // Debug: Check if DATABASE_URL is set
+        if (!process.env.DATABASE_URL) {
+            console.error('DATABASE_URL is not set. Available env vars:', Object.keys(process.env).filter(k => k.includes('DATABASE') || k.includes('POSTGRES') || k.includes('PG')));
+            return NextResponse.json(
+                { error: 'Database not configured', debug: 'DATABASE_URL missing' },
+                { status: 500 }
+            );
+        }
+
         const contacts = await getContacts();
         return NextResponse.json(contacts);
     } catch (error) {
         console.error('Failed to fetch contacts:', error);
         return NextResponse.json(
-            { error: 'Failed to fetch contacts' },
+            { error: 'Failed to fetch contacts', details: String(error) },
             { status: 500 }
         );
     }
@@ -33,7 +42,7 @@ export async function POST(request: Request) {
     } catch (error) {
         console.error('Failed to create contact:', error);
         return NextResponse.json(
-            { error: 'Failed to create contact' },
+            { error: 'Failed to create contact', details: String(error) },
             { status: 500 }
         );
     }
