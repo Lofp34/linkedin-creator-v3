@@ -2,9 +2,13 @@
 
 import type { Person } from '@/lib/db';
 
+export type SortOrder = 'name' | 'solicitation-asc' | 'solicitation-desc';
+
 interface ContactGridProps {
     contacts: Person[];
     selectedContacts: Set<string>;
+    sortOrder: SortOrder;
+    onSortChange: (order: SortOrder) => void;
     onToggleContact: (id: string) => void;
     onSelectAll: () => void;
     onDeselectAll: () => void;
@@ -13,6 +17,8 @@ interface ContactGridProps {
 export function ContactGrid({
     contacts,
     selectedContacts,
+    sortOrder,
+    onSortChange,
     onToggleContact,
     onSelectAll,
     onDeselectAll
@@ -34,7 +40,21 @@ export function ContactGrid({
                     <span className="stat-value">{selectedContacts.size}</span>
                     <span className="stat-label">Sélectionnés</span>
                 </div>
-                <div style={{ marginLeft: 'auto', display: 'flex', gap: 'var(--space-sm)' }}>
+
+                <div style={{ marginLeft: 'var(--space-md)', marginRight: 'auto' }}>
+                    <select
+                        className="form-input"
+                        style={{ padding: '0.25rem', fontSize: '0.875rem' }}
+                        value={sortOrder}
+                        onChange={(e) => onSortChange(e.target.value as SortOrder)}
+                    >
+                        <option value="name">Tri par nom</option>
+                        <option value="solicitation-asc">Tri par sollicitations (croissant)</option>
+                        <option value="solicitation-desc">Tri par sollicitations (décroissant)</option>
+                    </select>
+                </div>
+
+                <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
                     <button
                         className="btn btn-ghost btn-sm"
                         onClick={allSelected ? onDeselectAll : onSelectAll}

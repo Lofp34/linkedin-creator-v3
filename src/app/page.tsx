@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { Person, Tag } from '@/lib/db';
 import { TagCloud, TagState } from '@/components/TagCloud';
-import { ContactGrid } from '@/components/ContactGrid';
+import { ContactGrid, SortOrder } from '@/components/ContactGrid';
 import { PreviewPanel } from '@/components/PreviewPanel';
 import { AddContactModal } from '@/components/AddContactModal';
 import { Header } from '@/components/Header';
@@ -16,6 +16,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContacts, setSelectedContacts] = useState<Set<string>>(new Set());
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [sortOrder, setSortOrder] = useState<SortOrder>('name');
 
   // Fetch data on mount
   useEffect(() => {
@@ -56,12 +57,23 @@ export default function Home() {
       return [];
     }
 
-    return contacts.filter(person => {
+    const filtered = contacts.filter(person => {
       const hasIncluded = includedTags.some(tag => person.tags.includes(tag));
       const hasExcluded = excludedTags.some(tag => person.tags.includes(tag));
       return hasIncluded && !hasExcluded;
     });
-  }, [tagStates, contacts]);
+
+    return filtered.sort((a, b) => {
+      if (sortOrder === 'solicitation-asc') {
+        return a.solicitation_count - b.solicitation_count;
+      }
+      if (sortOrder === 'solicitation-desc') {
+        return b.solicitation_count - a.solicitation_count;
+      }
+      // 'name' sort is default from DB/API usually, but let's enforce it
+      return a.lastname.localeCompare(b.lastname);
+    });
+  }, [tagStates, contacts, sortOrder]);
 
   // Get selected contact objects
   const selectedContactObjects = useMemo(() => {
@@ -157,6 +169,8 @@ export default function Home() {
         <ContactGrid
           contacts={filteredContacts}
           selectedContacts={selectedContacts}
+          sortOrder={sortOrder}
+          onSortChange={setSortOrder}
           onToggleContact={handleToggleContact}
           onSelectAll={handleSelectAll}
           onDeselectAll={handleDeselectAll}

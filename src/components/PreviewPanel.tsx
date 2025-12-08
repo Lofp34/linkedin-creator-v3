@@ -19,9 +19,27 @@ export function PreviewPanel({ selectedContacts }: PreviewPanelProps) {
     const handleCopy = async () => {
         if (!textToCopy) return;
 
+        // Function to call API
+        const incrementSolicitations = async () => {
+            const ids = selectedContacts.map(c => c.id);
+            if (ids.length === 0) return;
+
+            try {
+                await fetch('/api/contacts/solicit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids })
+                });
+                // Note: We don't wait for state update here, assume success or let next refresh handle it
+            } catch (err) {
+                console.error('Failed to increment solicitations', err);
+            }
+        };
+
         try {
             await navigator.clipboard.writeText(textToCopy);
             setCopied(true);
+            await incrementSolicitations();
             setTimeout(() => setCopied(false), 2000);
         } catch {
             const textArea = document.createElement('textarea');
@@ -32,6 +50,7 @@ export function PreviewPanel({ selectedContacts }: PreviewPanelProps) {
             try {
                 document.execCommand('copy');
                 setCopied(true);
+                await incrementSolicitations();
                 setTimeout(() => setCopied(false), 2000);
             } catch (e) {
                 console.error('Failed to copy', e);

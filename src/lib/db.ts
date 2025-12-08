@@ -152,6 +152,21 @@ export async function deleteContact(personId: string): Promise<boolean> {
   return result.length > 0;
 }
 
+// Increment solicitation count for multiple contacts
+export async function incrementSolicitationCount(contactIds: string[]): Promise<void> {
+  if (contactIds.length === 0) return;
+
+  const db = getDb();
+
+  await db`
+    UPDATE people 
+    SET 
+      solicitation_count = solicitation_count + 1,
+      last_solicitation_date = NOW()
+    WHERE id = ANY(${contactIds})
+  `;
+}
+
 // Schema creation SQL (for reference and initial setup)
 export const SCHEMA_SQL = `
 -- Table des contacts
