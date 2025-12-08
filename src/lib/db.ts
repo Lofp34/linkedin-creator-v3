@@ -102,6 +102,56 @@ export async function addContact(
   } as Person;
 }
 
+// Update a contact's tags (replace all tags)
+export async function updateContactTags(
+  personId: string,
+  tagNames: string[]
+): Promise<Person | null> {
+  const db = getDb();
+
+  // Check if person exists
+  const [person] = await db`
+    SELECT id, firstname, lastname, solicitation_count, last_solicitation_date
+    FROM people WHERE id = ${personId}
+  `;
+
+  if (!person) return null;
+
+  // Remove all existing tags
+  await db`DELETE FROM person_tags WHERE person_id = ${personId}`;
+
+  // Add new tags
+  if (tagNames.length > 0) {
+    const tagRows = await db`
+      SELECT id FROM tags WHERE name = ANY(${tagNames})
+    `;
+
+    for (const tag of tagRows) {
+      await db`
+        INSERT INTO person_tags (person_id, tag_id)
+        VALUES (${personId}, ${tag.id})
+      `;
+    }
+  }
+
+  return {
+    ...person,
+    tags: tagNames
+  } as Person;
+}
+
+// Delete a contact
+export async function deleteContact(personId: string): Promise<boolean> {
+  const db = getDb();
+
+  const result = await db`
+    DELETE FROM people WHERE id = ${personId}
+    RETURNING id
+  `;
+
+  return result.length > 0;
+}
+
 // Schema creation SQL (for reference and initial setup)
 export const SCHEMA_SQL = `
 -- Table des contacts
