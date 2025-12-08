@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { Person, Tag } from '@/lib/db';
+import { TagSelector } from '@/components/TagSelector';
 
 interface AddContactModalProps {
     isOpen: boolean;
@@ -14,13 +15,8 @@ export function AddContactModal({ isOpen, tags, onClose, onAdd }: AddContactModa
     const [firstname, setFirstname] = useState('');
     const [lastname, setLastname] = useState('');
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
-    const [tagSearch, setTagSearch] = useState('');
 
     if (!isOpen) return null;
-
-    const filteredTags = tags
-        .filter(t => t.name.toLowerCase().includes(tagSearch.toLowerCase()))
-        .slice(0, 15);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -35,7 +31,6 @@ export function AddContactModal({ isOpen, tags, onClose, onAdd }: AddContactModa
         setFirstname('');
         setLastname('');
         setSelectedTags([]);
-        setTagSearch('');
         onClose();
     };
 
@@ -82,37 +77,12 @@ export function AddContactModal({ isOpen, tags, onClose, onAdd }: AddContactModa
                     </div>
 
                     <div className="form-group">
-                        <label>Tags ({selectedTags.length} sélectionnés)</label>
-                        <input
-                            type="text"
-                            className="form-input"
-                            value={tagSearch}
-                            onChange={e => setTagSearch(e.target.value)}
-                            placeholder="Rechercher un tag..."
+                        <label>Tags</label>
+                        <TagSelector
+                            availableTags={tags}
+                            selectedTags={selectedTags}
+                            onToggleTag={toggleTag}
                         />
-
-                        {selectedTags.length > 0 && (
-                            <div className="selected-tags">
-                                {selectedTags.map(tag => (
-                                    <span key={tag} className="tag tag-include" onClick={() => toggleTag(tag)}>
-                                        {tag} ✕
-                                    </span>
-                                ))}
-                            </div>
-                        )}
-
-                        <div className="tag-suggestions">
-                            {filteredTags.map(tag => (
-                                <button
-                                    key={tag.id}
-                                    type="button"
-                                    className={`tag ${selectedTags.includes(tag.name) ? 'tag-include' : 'tag-neutral'}`}
-                                    onClick={() => toggleTag(tag.name)}
-                                >
-                                    {tag.name}
-                                </button>
-                            ))}
-                        </div>
                     </div>
 
                     <div className="modal-footer">

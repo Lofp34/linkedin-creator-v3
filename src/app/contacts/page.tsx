@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import type { Person, Tag } from '@/lib/db';
 import { AddContactModal } from '@/components/AddContactModal';
 import { Header } from '@/components/Header';
+import { TagSelector } from '@/components/TagSelector';
 
 export default function ContactsPage() {
     const [contacts, setContacts] = useState<Person[]>([]);
@@ -194,28 +195,16 @@ export default function ContactsPage() {
                             <div className="modal-body">
                                 <label className="form-label">Tags</label>
                                 <div className="tags-sections">
-                                    {/* Réutilisation simplifiée de la sélection de tags ou création d'un composant dédié */}
-                                    {/* Pour l'instant on liste tous les tags cliquables */}
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', maxHeight: '300px', overflowY: 'auto' }}>
-                                        {tags.map(tag => {
-                                            const isSelected = editingContact.tags.includes(tag.name);
-                                            return (
-                                                <button
-                                                    key={tag.id}
-                                                    type="button"
-                                                    className={`tag ${isSelected ? 'tag-include' : 'tag-neutral'}`}
-                                                    onClick={() => {
-                                                        const newTags = isSelected
-                                                            ? editingContact.tags.filter(t => t !== tag.name)
-                                                            : [...editingContact.tags, tag.name];
-                                                        setEditingContact({ ...editingContact, tags: newTags });
-                                                    }}
-                                                >
-                                                    {tag.name}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
+                                    <TagSelector
+                                        availableTags={tags}
+                                        selectedTags={editingContact.tags}
+                                        onToggleTag={(tagName) => {
+                                            const newTags = editingContact.tags.includes(tagName)
+                                                ? editingContact.tags.filter(t => t !== tagName)
+                                                : [...editingContact.tags, tagName];
+                                            setEditingContact({ ...editingContact, tags: newTags });
+                                        }}
+                                    />
                                 </div>
                             </div>
 
