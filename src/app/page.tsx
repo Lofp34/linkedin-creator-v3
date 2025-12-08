@@ -6,6 +6,7 @@ import { TagCloud, TagState } from '@/components/TagCloud';
 import { ContactGrid } from '@/components/ContactGrid';
 import { PreviewPanel } from '@/components/PreviewPanel';
 import { AddContactModal } from '@/components/AddContactModal';
+import { Header } from '@/components/Header';
 
 export default function Home() {
   const [contacts, setContacts] = useState<Person[]>([]);
@@ -136,20 +137,10 @@ export default function Home() {
 
   return (
     <div className="app-layout">
-      <header className="app-header">
-        <div className="app-logo">
-          <span className="app-logo-prefix">LinkedIn</span>
-          <span className="app-logo-main">@Creator</span>
-        </div>
-        <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'center' }}>
-          <button className="btn btn-primary" onClick={() => setIsAddModalOpen(true)}>
-            + Nouveau Contact
-          </button>
-          <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>
-            {contacts.length} contacts
-          </span>
-        </div>
-      </header>
+      <Header
+        contactCount={contacts.length}
+        onAddContact={() => setIsAddModalOpen(true)}
+      />
 
       <aside className="sidebar-left">
         <TagCloud
