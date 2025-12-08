@@ -1,0 +1,118 @@
+import { neon } from '@neondatabase/serverless';
+
+// Initialize neon client with the DATABASE_URL from environment
+const sql = neon(process.env.DATABASE_URL!);
+
+// Types
+export interface Person {
+    id: string;
+    firstname: string;
+    lastname: string;
+    solicitation_count: number;
+    last_solicitation_date: string | null;
+    tags: string[];
+}
+
+export interface Tag {
+    id: number;
+    name: string;
+    category: string;
+    is_priority: boolean;
+}
+
+// Get all contacts with their tags
+export async function getContacts(): Promise<Person[]> {
+    const rows = await sql`
+    SELECT 
+      p.id,
+      p.firstname,
+      p.lastname,
+      p.solicitation_count,
+      p.last_solicitation_date,
+      COALESCE(
+        array_agg(t.name) FILTER (WHERE t.name IS NOT NULL),
+        ARRAY[]::varchar[]
+      ) as tags
+    FROM people p
+    LEFT JOIN person_tags pt ON p.id = pt.person_id
+    LEFT JOIN tags t ON pt.tag_id = t.id
+    GROUP BY p.id
+    ORDER BY p.lastname, p.firstname
+  `;
+
+    return rows as Person[];
+}
+
+// Get all tags grouped by category
+export async function getTags(): Promise<Tag[]> {
+    const rows = await sql`
+    SELECT id, name, category, is_priority
+    FROM tags
+    ORDER BY category, name
+  `;
+
+    return rows as Tag[];
+}
+
+// Add a new contact
+export async function addContact(
+    firstname: string,
+    lastname: string,
+    tagNames: string[]
+): Promise<Person> {
+    // Insert the person
+    const [person] = await sql`
+    INSERT INTO people (firstname, lastname, solicitation_count)
+    VALUES (${firstname}, ${lastname}, 0)
+    RETURNING id, firstname, lastname, solicitation_count, last_solicitation_date
+  `;
+
+    // Get tag IDs for the given names
+    if (tagNames.length > 0) {
+        const tagRows = await sql`
+      SELECT id FROM tags WHERE name = ANY(${tagNames})
+    `;
+
+        // Insert person_tags relationships
+        for (const tag of tagRows) {
+            await sql`
+        INSERT INTO person_tags (person_id, tag_id)
+        VALUES (${person.id}, ${tag.id})
+      `;
+        }
+    }
+
+    return {
+        ...person,
+        tags: tagNames
+    } as Person;
+}
+
+// Schema creation SQL (for reference and initial setup)
+export const SCHEMA_SQL = `
+-- Table des contacts
+CREATE TABLE IF NOT EXISTS people (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  firstname VARCHAR(100) NOT NULL,
+  lastname VARCHAR(100) NOT NULL,
+  solicitation_count INTEGER DEFAULT 0,
+  last_solicitation_date TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Table des tags
+CREATE TABLE IF NOT EXISTS tags (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL UNIQUE,
+  category VARCHAR(100) DEFAULT 'Non classée',
+  is_priority BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Table de liaison (many-to-many)
+CREATE TABLE IF NOT EXISTS person_tags (
+  person_id UUID REFERENCES people(id) ON DELETE CASCADE,
+  tag_id INTEGER REFERENCES tags(id) ON DELETE CASCADE,
+  PRIMARY KEY (person_id, tag_id)
+);
+`;

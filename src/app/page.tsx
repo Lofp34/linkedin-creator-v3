@@ -1,66 +1,187 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client';
+
+import { useState, useEffect, useMemo } from 'react';
+import type { Person, Tag } from '@/lib/db';
+import { TagCloud, TagState } from '@/components/TagCloud';
+import { ContactGrid } from '@/components/ContactGrid';
+import { PreviewPanel } from '@/components/PreviewPanel';
+import { AddContactModal } from '@/components/AddContactModal';
 
 export default function Home() {
+  const [contacts, setContacts] = useState<Person[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [tagStates, setTagStates] = useState<Record<string, TagState>>({});
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedContacts, setSelectedContacts] = useState<Set<string>>(new Set());
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  // Fetch data on mount
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [contactsRes, tagsRes] = await Promise.all([
+          fetch('/api/contacts'),
+          fetch('/api/tags')
+        ]);
+
+        if (contactsRes.ok && tagsRes.ok) {
+          const contactsData = await contactsRes.json();
+          const tagsData = await tagsRes.json();
+          setContacts(contactsData);
+          setTags(tagsData);
+        }
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, []);
+
+  // Filter contacts based on tag states
+  const filteredContacts = useMemo(() => {
+    const includedTags = Object.entries(tagStates)
+      .filter(([, state]) => state === 'include')
+      .map(([tag]) => tag);
+
+    const excludedTags = Object.entries(tagStates)
+      .filter(([, state]) => state === 'exclude')
+      .map(([tag]) => tag);
+
+    if (includedTags.length === 0) {
+      return [];
+    }
+
+    return contacts.filter(person => {
+      const hasIncluded = includedTags.some(tag => person.tags.includes(tag));
+      const hasExcluded = excludedTags.some(tag => person.tags.includes(tag));
+      return hasIncluded && !hasExcluded;
+    });
+  }, [tagStates, contacts]);
+
+  // Get selected contact objects
+  const selectedContactObjects = useMemo(() => {
+    return filteredContacts.filter(c => selectedContacts.has(c.id));
+  }, [filteredContacts, selectedContacts]);
+
+  const handleToggleTag = (tagName: string) => {
+    setTagStates(prev => {
+      const currentState = prev[tagName] || 'neutral';
+      const newStates = { ...prev };
+
+      if (currentState === 'neutral') {
+        newStates[tagName] = 'include';
+      } else if (currentState === 'include') {
+        newStates[tagName] = 'exclude';
+      } else {
+        delete newStates[tagName];
+      }
+
+      return newStates;
+    });
+  };
+
+  const handleResetFilters = () => {
+    setTagStates({});
+    setSelectedContacts(new Set());
+  };
+
+  const handleToggleContact = (id: string) => {
+    setSelectedContacts(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAll = () => {
+    setSelectedContacts(new Set(filteredContacts.map(c => c.id)));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedContacts(new Set());
+  };
+
+  const handleAddContact = async (contactData: Omit<Person, 'id' | 'solicitation_count' | 'last_solicitation_date'>) => {
+    try {
+      const response = await fetch('/api/contacts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(contactData)
+      });
+
+      if (response.ok) {
+        const newContact = await response.json();
+        setContacts(prev => [newContact, ...prev]);
+      }
+    } catch (error) {
+      console.error('Failed to add contact:', error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="app-layout" style={{ placeItems: 'center', display: 'grid' }}>
+        <div>Chargement...</div>
+      </div>
+    );
+  }
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="app-layout">
+      <header className="app-header">
+        <div className="app-logo">
+          <span className="app-logo-prefix">LinkedIn</span>
+          <span className="app-logo-main">@Creator</span>
+        </div>
+        <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'center' }}>
+          <button className="btn btn-primary" onClick={() => setIsAddModalOpen(true)}>
+            + Nouveau Contact
+          </button>
+          <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>
+            {contacts.length} contacts
+          </span>
+        </div>
+      </header>
+
+      <aside className="sidebar-left">
+        <TagCloud
+          tags={tags}
+          tagStates={tagStates}
+          onToggleTag={handleToggleTag}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onResetFilters={handleResetFilters}
         />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+      </aside>
+
+      <main className="main-content">
+        <ContactGrid
+          contacts={filteredContacts}
+          selectedContacts={selectedContacts}
+          onToggleContact={handleToggleContact}
+          onSelectAll={handleSelectAll}
+          onDeselectAll={handleDeselectAll}
+        />
       </main>
+
+      <aside className="sidebar-right">
+        <PreviewPanel selectedContacts={selectedContactObjects} />
+      </aside>
+
+      <AddContactModal
+        isOpen={isAddModalOpen}
+        tags={tags}
+        onClose={() => setIsAddModalOpen(false)}
+        onAdd={handleAddContact}
+      />
     </div>
   );
 }
