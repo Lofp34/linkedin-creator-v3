@@ -1,28 +1,39 @@
-import { neon } from '@neondatabase/serverless';
+import { neon, NeonQueryFunction } from '@neondatabase/serverless';
 
-// Initialize neon client with the DATABASE_URL from environment
-const sql = neon(process.env.DATABASE_URL!);
+// Lazy initialization - only connect when needed (at runtime, not build time)
+let sql: NeonQueryFunction<false, false> | null = null;
+
+function getDb() {
+  if (!sql) {
+    if (!process.env.DATABASE_URL) {
+      throw new Error('DATABASE_URL environment variable is not set');
+    }
+    sql = neon(process.env.DATABASE_URL);
+  }
+  return sql;
+}
 
 // Types
 export interface Person {
-    id: string;
-    firstname: string;
-    lastname: string;
-    solicitation_count: number;
-    last_solicitation_date: string | null;
-    tags: string[];
+  id: string;
+  firstname: string;
+  lastname: string;
+  solicitation_count: number;
+  last_solicitation_date: string | null;
+  tags: string[];
 }
 
 export interface Tag {
-    id: number;
-    name: string;
-    category: string;
-    is_priority: boolean;
+  id: number;
+  name: string;
+  category: string;
+  is_priority: boolean;
 }
 
 // Get all contacts with their tags
 export async function getContacts(): Promise<Person[]> {
-    const rows = await sql`
+  const db = getDb();
+  const rows = await db`
     SELECT 
       p.id,
       p.firstname,
@@ -40,52 +51,55 @@ export async function getContacts(): Promise<Person[]> {
     ORDER BY p.lastname, p.firstname
   `;
 
-    return rows as Person[];
+  return rows as Person[];
 }
 
 // Get all tags grouped by category
 export async function getTags(): Promise<Tag[]> {
-    const rows = await sql`
+  const db = getDb();
+  const rows = await db`
     SELECT id, name, category, is_priority
     FROM tags
     ORDER BY category, name
   `;
 
-    return rows as Tag[];
+  return rows as Tag[];
 }
 
 // Add a new contact
 export async function addContact(
-    firstname: string,
-    lastname: string,
-    tagNames: string[]
+  firstname: string,
+  lastname: string,
+  tagNames: string[]
 ): Promise<Person> {
-    // Insert the person
-    const [person] = await sql`
+  const db = getDb();
+
+  // Insert the person
+  const [person] = await db`
     INSERT INTO people (firstname, lastname, solicitation_count)
     VALUES (${firstname}, ${lastname}, 0)
     RETURNING id, firstname, lastname, solicitation_count, last_solicitation_date
   `;
 
-    // Get tag IDs for the given names
-    if (tagNames.length > 0) {
-        const tagRows = await sql`
+  // Get tag IDs for the given names
+  if (tagNames.length > 0) {
+    const tagRows = await db`
       SELECT id FROM tags WHERE name = ANY(${tagNames})
     `;
 
-        // Insert person_tags relationships
-        for (const tag of tagRows) {
-            await sql`
+    // Insert person_tags relationships
+    for (const tag of tagRows) {
+      await db`
         INSERT INTO person_tags (person_id, tag_id)
         VALUES (${person.id}, ${tag.id})
       `;
-        }
     }
+  }
 
-    return {
-        ...person,
-        tags: tagNames
-    } as Person;
+  return {
+    ...person,
+    tags: tagNames
+  } as Person;
 }
 
 // Schema creation SQL (for reference and initial setup)
