@@ -5,10 +5,12 @@ import { usePathname } from 'next/navigation';
 
 export function Header({
     contactCount,
-    onAddContact
+    onAddContact,
+    onManageTags
 }: {
     contactCount?: number;
     onAddContact?: () => void;
+    onManageTags?: () => void;
 }) {
     const pathname = usePathname();
 
@@ -48,6 +50,11 @@ export function Header({
                 {onAddContact && (
                     <button className="btn btn-primary" onClick={onAddContact}>
                         + Nouveau Contact
+                    </button>
+                )}
+                {onManageTags && (
+                    <button className="btn btn-secondary" onClick={onManageTags}>
+                        # Tags
                     </button>
                 )}
                 {contactCount !== undefined && (

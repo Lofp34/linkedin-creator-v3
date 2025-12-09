@@ -167,6 +167,48 @@ export async function incrementSolicitationCount(contactIds: string[]): Promise<
   `;
 }
 
+// Create a new tag
+export async function createTag(tag: Omit<Tag, 'id'>): Promise<Tag> {
+  const db = getDb();
+  // Ensure default values
+  const category = tag.category || 'Non classée';
+  const isPriority = tag.is_priority || false;
+
+  const [newTag] = await db`
+    INSERT INTO tags (name, category, is_priority)
+    VALUES (${tag.name}, ${category}, ${isPriority})
+    RETURNING id, name, category, is_priority
+  `;
+  return newTag as Tag;
+}
+
+// Update a tag
+export async function updateTag(id: number, updates: Partial<Omit<Tag, 'id'>>): Promise<Tag | null> {
+  const db = getDb();
+
+  const [updatedTag] = await db`
+    UPDATE tags 
+    SET 
+      name = COALESCE(${updates.name ?? null}, name),
+      category = COALESCE(${updates.category ?? null}, category),
+      is_priority = COALESCE(${updates.is_priority ?? null}, is_priority)
+    WHERE id = ${id}
+    RETURNING id, name, category, is_priority
+  `;
+
+  return (updatedTag as Tag) || null;
+}
+
+// Delete a tag
+export async function deleteTag(id: number): Promise<boolean> {
+  const db = getDb();
+  const result = await db`
+    DELETE FROM tags WHERE id = ${id}
+    RETURNING id
+  `;
+  return result.length > 0;
+}
+
 // Schema creation SQL (for reference and initial setup)
 export const SCHEMA_SQL = `
 -- Table des contacts

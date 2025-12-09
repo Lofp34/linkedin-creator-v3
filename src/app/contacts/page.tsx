@@ -5,6 +5,7 @@ import type { Person, Tag } from '@/lib/db';
 import { AddContactModal } from '@/components/AddContactModal';
 import { Header } from '@/components/Header';
 import { TagSelector } from '@/components/TagSelector';
+import { TagManager } from '@/components/TagManager';
 
 export default function ContactsPage() {
     const [contacts, setContacts] = useState<Person[]>([]);
@@ -12,6 +13,7 @@ export default function ContactsPage() {
     const [loading, setLoading] = useState(true);
     const [editingContact, setEditingContact] = useState<Person | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isTagManagerOpen, setIsTagManagerOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
     const fetchContacts = async () => {
@@ -111,6 +113,7 @@ export default function ContactsPage() {
             <Header
                 contactCount={contacts.length}
                 onAddContact={() => setIsAddModalOpen(true)}
+                onManageTags={() => setIsTagManagerOpen(true)}
             />
 
             <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
@@ -227,6 +230,13 @@ export default function ContactsPage() {
                 tags={tags}
                 onClose={() => setIsAddModalOpen(false)}
                 onAdd={handleAddContact}
+            />
+
+            <TagManager
+                isOpen={isTagManagerOpen}
+                onClose={() => setIsTagManagerOpen(false)}
+                tags={tags}
+                onTagsChange={fetchTags}
             />
         </div>
     );
