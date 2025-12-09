@@ -199,7 +199,6 @@ export default function Home() {
         isOpen={isAddModalOpen}
         tags={tags}
         onClose={() => setIsAddModalOpen(false)}
-        onClose={() => setIsAddModalOpen(false)}
         onAdd={handleAddContact}
         onManageTags={() => setIsTagManagerOpen(true)}
       />
