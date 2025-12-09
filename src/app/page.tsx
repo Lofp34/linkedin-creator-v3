@@ -6,6 +6,7 @@ import { TagCloud, TagState } from '@/components/TagCloud';
 import { ContactGrid, SortOrder } from '@/components/ContactGrid';
 import { PreviewPanel } from '@/components/PreviewPanel';
 import { AddContactModal } from '@/components/AddContactModal';
+import { TagManager } from '@/components/TagManager';
 import { Header } from '@/components/Header';
 
 export default function Home() {
@@ -16,6 +17,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContacts, setSelectedContacts] = useState<Set<string>>(new Set());
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isTagManagerOpen, setIsTagManagerOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState<SortOrder>('name');
 
   // Fetch data on mount
@@ -42,6 +44,18 @@ export default function Home() {
 
     fetchData();
   }, []);
+
+  const refreshTags = async () => {
+    try {
+      const response = await fetch('/api/tags');
+      if (response.ok) {
+        const data = await response.json();
+        setTags(data);
+      }
+    } catch (error) {
+      console.error('Failed to refresh tags:', error);
+    }
+  };
 
   // Filter contacts based on tag states
   const filteredContacts = useMemo(() => {
@@ -185,7 +199,16 @@ export default function Home() {
         isOpen={isAddModalOpen}
         tags={tags}
         onClose={() => setIsAddModalOpen(false)}
+        onClose={() => setIsAddModalOpen(false)}
         onAdd={handleAddContact}
+        onManageTags={() => setIsTagManagerOpen(true)}
+      />
+
+      <TagManager
+        isOpen={isTagManagerOpen}
+        onClose={() => setIsTagManagerOpen(false)}
+        tags={tags}
+        onTagsChange={refreshTags}
       />
     </div>
   );
