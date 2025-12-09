@@ -9,9 +9,10 @@ interface AddContactModalProps {
     tags: Tag[];
     onClose: () => void;
     onAdd: (contact: Omit<Person, 'id' | 'solicitation_count' | 'last_solicitation_date'>) => void;
+    onManageTags?: () => void;
 }
 
-export function AddContactModal({ isOpen, tags, onClose, onAdd }: AddContactModalProps) {
+export function AddContactModal({ isOpen, tags, onClose, onAdd, onManageTags }: AddContactModalProps) {
     const [firstname, setFirstname] = useState('');
     const [lastname, setLastname] = useState('');
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -79,9 +80,21 @@ export function AddContactModal({ isOpen, tags, onClose, onAdd }: AddContactModa
                     {/* Quick Select for Priority Tags */}
                     {tags.filter(t => t.is_priority).length > 0 && (
                         <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                            <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', display: 'block' }}>
-                                Tags Rapides
-                            </label>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 0 }}>
+                                    Tags Rapides
+                                </label>
+                                {onManageTags && (
+                                    <button
+                                        type="button"
+                                        onClick={onManageTags}
+                                        className="btn btn-sm btn-ghost"
+                                        style={{ padding: '0 0.5rem', fontSize: '0.75rem', height: 'auto' }}
+                                    >
+                                        ⚙ Gérer
+                                    </button>
+                                )}
+                            </div>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                                 {tags.filter(t => t.is_priority).map(tag => (
                                     <button

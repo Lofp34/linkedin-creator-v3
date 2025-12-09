@@ -230,6 +230,7 @@ export default function ContactsPage() {
                 tags={tags}
                 onClose={() => setIsAddModalOpen(false)}
                 onAdd={handleAddContact}
+                onManageTags={() => setIsTagManagerOpen(true)}
             />
 
             <TagManager
