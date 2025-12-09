@@ -16,6 +16,14 @@ export function TagManager({ isOpen, onClose, tags, onTagsChange }: TagManagerPr
     const [formData, setFormData] = useState({ name: '', category: '', is_priority: false });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [search, setSearch] = useState('');
+
+    const filteredTags = tags.filter(t =>
+        t.name.toLowerCase().includes(search.toLowerCase()) ||
+        t.category.toLowerCase().includes(search.toLowerCase())
+    );
+
+    const priorityTags = tags.filter(t => t.is_priority);
 
     if (!isOpen) return null;
 
@@ -75,6 +83,21 @@ export function TagManager({ isOpen, onClose, tags, onTagsChange }: TagManagerPr
         }
     };
 
+    const handleTogglePriority = async (tag: Tag) => {
+        try {
+            const response = await fetch(`/api/tags/${tag.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_priority: !tag.is_priority })
+            });
+
+            if (!response.ok) throw new Error('Failed to update priority');
+            onTagsChange();
+        } catch (error) {
+            console.error('Error updating priority:', error);
+        }
+    };
+
     const startEdit = (tag: Tag) => {
         setEditingTag(tag);
         setFormData({
@@ -109,6 +132,37 @@ export function TagManager({ isOpen, onClose, tags, onTagsChange }: TagManagerPr
                                 </button>
                             </div>
 
+                            <input
+                                type="text"
+                                className="form-input"
+                                placeholder="Rechercher un tag..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                            />
+
+                            {/* Priority Tags Section */}
+                            {priorityTags.length > 0 && (
+                                <div style={{ padding: '1rem', background: 'var(--color-warning-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-warning)' }}>
+                                    <h3 style={{ fontSize: '0.875rem', fontWeight: 'bold', color: 'var(--color-warning)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        ★ Tags Prioritaires (Mis en avant)
+                                    </h3>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                        {priorityTags.map(tag => (
+                                            <div key={tag.id} className="tag tag-include" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', paddingRight: '0.25rem' }}>
+                                                {tag.name}
+                                                <button
+                                                    onClick={() => handleTogglePriority(tag)}
+                                                    title="Retirer des prioritaires"
+                                                    style={{ border: 'none', background: 'none', color: 'inherit', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.1)' }}
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             <div style={{ maxHeight: '400px', overflowY: 'auto', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)' }}>
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                     <thead style={{ background: 'var(--color-surface-hover)', position: 'sticky', top: 0 }}>
@@ -120,7 +174,7 @@ export function TagManager({ isOpen, onClose, tags, onTagsChange }: TagManagerPr
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {tags.map(tag => (
+                                        {filteredTags.map(tag => (
                                             <tr key={tag.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                                                 <td style={{ padding: '0.75rem' }}>
                                                     <span className={`tag ${tag.is_priority ? 'tag-include' : 'tag-neutral'}`}>
@@ -131,7 +185,12 @@ export function TagManager({ isOpen, onClose, tags, onTagsChange }: TagManagerPr
                                                     {tag.category}
                                                 </td>
                                                 <td style={{ padding: '0.75rem', textAlign: 'center' }}>
-                                                    {tag.is_priority ? '★' : '-'}
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={tag.is_priority}
+                                                        onChange={() => handleTogglePriority(tag)}
+                                                        style={{ cursor: 'pointer' }}
+                                                    />
                                                 </td>
                                                 <td style={{ padding: '0.75rem', textAlign: 'right' }}>
                                                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
