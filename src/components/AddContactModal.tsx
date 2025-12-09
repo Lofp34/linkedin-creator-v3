@@ -76,6 +76,28 @@ export function AddContactModal({ isOpen, tags, onClose, onAdd }: AddContactModa
                         />
                     </div>
 
+                    {/* Quick Select for Priority Tags */}
+                    {tags.filter(t => t.is_priority).length > 0 && (
+                        <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                            <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', display: 'block' }}>
+                                Tags Rapides
+                            </label>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                {tags.filter(t => t.is_priority).map(tag => (
+                                    <button
+                                        key={tag.id}
+                                        type="button"
+                                        className={`tag ${selectedTags.includes(tag.name) ? 'tag-include' : 'tag-neutral'}`}
+                                        onClick={() => toggleTag(tag.name)}
+                                        style={{ fontSize: '0.85rem', padding: '0.25rem 0.75rem' }}
+                                    >
+                                        {tag.name}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     <div className="form-group">
                         <label>Tags</label>
                         <TagSelector
