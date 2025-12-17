@@ -74,6 +74,18 @@ export async function addContact(
 ): Promise<Person> {
   const db = getDb();
 
+  // Check for duplicates
+  const existing = await db`
+    SELECT id FROM people 
+    WHERE LOWER(firstname) = LOWER(${firstname}) 
+    AND LOWER(lastname) = LOWER(${lastname})
+    LIMIT 1
+  `;
+
+  if (existing.length > 0) {
+    throw new Error('DUPLICATE_CONTACT');
+  }
+
   // Insert the person
   const [person] = await db`
     INSERT INTO people (firstname, lastname, solicitation_count)

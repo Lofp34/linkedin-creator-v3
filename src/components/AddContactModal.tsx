@@ -8,7 +8,7 @@ interface AddContactModalProps {
     isOpen: boolean;
     tags: Tag[];
     onClose: () => void;
-    onAdd: (contact: Omit<Person, 'id' | 'solicitation_count' | 'last_solicitation_date'>) => void;
+    onAdd: (contact: Omit<Person, 'id' | 'solicitation_count' | 'last_solicitation_date'>) => Promise<void>;
     onManageTags: () => void;
 }
 
@@ -16,23 +16,33 @@ export function AddContactModal({ isOpen, tags, onClose, onAdd, onManageTags }: 
     const [firstname, setFirstname] = useState('');
     const [lastname, setLastname] = useState('');
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
+    const [error, setError] = useState<string | null>(null);
 
     if (!isOpen) return null;
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError(null);
         if (!firstname.trim() || !lastname.trim()) return;
 
-        onAdd({
-            firstname: firstname.trim(),
-            lastname: lastname.trim(),
-            tags: selectedTags
-        });
+        try {
+            await onAdd({
+                firstname: firstname.trim(),
+                lastname: lastname.trim(),
+                tags: selectedTags
+            });
 
-        setFirstname('');
-        setLastname('');
-        setSelectedTags([]);
-        onClose();
+            setFirstname('');
+            setLastname('');
+            setSelectedTags([]);
+            onClose();
+        } catch (err) {
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('Une erreur est survenue');
+            }
+        }
     };
 
     const toggleTag = (tagName: string) => {
@@ -133,6 +143,11 @@ export function AddContactModal({ isOpen, tags, onClose, onAdd, onManageTags }: 
                     </div>
 
                     <div className="modal-footer">
+                        {error && (
+                            <div style={{ color: 'var(--color-danger)', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                                {error}
+                            </div>
+                        )}
                         <button type="button" className="btn btn-secondary" onClick={onClose}>
                             Annuler
                         </button>

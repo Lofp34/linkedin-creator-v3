@@ -96,9 +96,16 @@ export default function ContactsPage() {
                 const newContact = await response.json();
                 setContacts(prev => [newContact, ...prev]);
                 setIsAddModalOpen(false);
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                if (response.status === 409) {
+                    throw new Error(errorData.details || 'Ce contact existe déjà');
+                }
+                throw new Error('Erreur lors de la création');
             }
         } catch (error) {
             console.error('Failed to add contact:', error);
+            throw error;
         }
     };
 

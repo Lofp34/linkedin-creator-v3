@@ -41,6 +41,15 @@ export async function POST(request: Request) {
         return NextResponse.json(contact, { status: 201 });
     } catch (error) {
         console.error('Failed to create contact:', error);
+
+        // Handle specific errors
+        if (error instanceof Error && error.message === 'DUPLICATE_CONTACT') {
+            return NextResponse.json(
+                { error: 'Duplicate contact', details: 'A contact with this name already exists' },
+                { status: 409 }
+            );
+        }
+
         return NextResponse.json(
             { error: 'Failed to create contact', details: String(error) },
             { status: 500 }
